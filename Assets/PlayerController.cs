@@ -3,8 +3,8 @@
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement Speeds")]
-    public float walkSpeed = 4f;
-    public float sprintSpeed = 7f;
+    public float walkSpeed = 1f;
+    public float sprintSpeed = 2.5f;
 
     [Header("Smoothness")]
     public float acceleration = 10f;

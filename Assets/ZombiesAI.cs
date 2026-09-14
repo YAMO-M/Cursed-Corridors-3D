@@ -104,61 +104,60 @@ public class ZombieChaseAI : MonoBehaviour
     }
 
     private void HandleChasing(float distance, bool canSeePlayer)
+{
+    if (distance > loseRange || !canSeePlayer)
     {
-        if (distance > loseRange || !canSeePlayer)
-        {
-            currentState = State.Idle;
-            agent.isStopped = true;
-            agent.ResetPath();
-            return;
-        }
-
-        timer += Time.deltaTime;
-
-        if (timer >= updateInterval)
-        {
-            timer = 0f;
-            agent.SetDestination(player.position);
-        }
-
-        if (distance <= attackRange &&
-            attackTimer <= 0f)
-        {
-            currentState = State.Attacking;
-            agent.isStopped = true;
-
-            animator.SetTrigger("Attack");
-
-            if (playerHealth != null)
-                playerHealth.TakeDamage(attackDamage);
-
-            attackTimer = attackCooldown;
-        }
-
-        attackTimer -= Time.deltaTime;
-    }
-
-    private void HandleAttacking(float distance)
-    {
+        currentState = State.Idle;
         agent.isStopped = true;
-
-        attackTimer -= Time.deltaTime;
-
-        if (attackTimer <= 0f)
-        {
-            if (distance <= attackRange)
-            {
-                animator.SetTrigger("Attack");
-                attackTimer = attackCooldown;
-            }
-            else
-            {
-                currentState = State.Chasing;
-                agent.isStopped = false;
-            }
-        }
+        agent.ResetPath();
+        return;
     }
 
+    // Only attack when genuinely close
+    if (distance <= attackRange)
+    {
+        currentState = State.Attacking;
+        agent.isStopped = true;
+        agent.ResetPath();
+        attackTimer = 0f;
+        return;
+    }
+
+    // Keep walking toward the player
+    timer += Time.deltaTime;
+
+    if (timer >= updateInterval)
+    {
+        timer = 0f;
+        agent.isStopped = false;
+        agent.SetDestination(player.position);
+    }
+}
+    private void HandleAttacking(float distance)
+{
+    agent.isStopped = true;
+
+    // Player moved away, chase again
+    if (distance > attackRange)
+    {
+        currentState = State.Chasing;
+        agent.isStopped = false;
+        return;
+    }
+
+    // Count down to the next attack
+    attackTimer -= Time.deltaTime;
+
+    if (attackTimer <= 0f)
+    {
+        animator.SetTrigger("Attack");
+
+        if (playerHealth != null)
+            playerHealth.TakeDamage(attackDamage);
+
+        attackTimer = attackCooldown;
+    }
+}
     private void UpdateAnimation()
     {
         if (animator == null)

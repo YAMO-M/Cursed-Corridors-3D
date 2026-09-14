@@ -27,7 +27,7 @@ public class ZombieChaseAI : MonoBehaviour
     [SerializeField] private float updateInterval = 0.2f;
 
     [Header("Attack")]
-    [SerializeField] private float attackRange = 1.8f;
+    [SerializeField] private float attackRange = 0.5f;
     [SerializeField] private int attackDamage = 20;
     [SerializeField] private float attackCooldown = 1.5f;
 

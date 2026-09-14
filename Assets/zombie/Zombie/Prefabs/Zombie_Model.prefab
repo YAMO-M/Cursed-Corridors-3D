@@ -418,6 +418,6 @@ MonoBehaviour:
     m_Bits: 128
   eyeHeight: 1.5
   updateInterval: 0.2
-  attackRange: 1.8
+  attackRange: 0.5
   attackDamage: 20
-  attackCooldown: 1.5
+  attackCooldown: 2

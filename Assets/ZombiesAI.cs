@@ -2,28 +2,42 @@ using UnityEngine;
 using UnityEngine.AI;
 
 [RequireComponent(typeof(NavMeshAgent))]
+[RequireComponent(typeof(Animator))]
 public class ZombieChaseAI : MonoBehaviour
 {
-    private enum State { Idle, Chasing }
+    private enum State
+    {
+        Idle,
+        Chasing,
+        Attacking
+    }
 
     [Header("References")]
     [SerializeField] private Transform player;
     [SerializeField] private Animator animator;
+    [SerializeField] private PlayerHealth playerHealth;
 
     [Header("Detection")]
-    [SerializeField] private float detectionRange = 8f;    // max distance the zombie can spot the player at all
-    [SerializeField] private float loseRange = 15f;         // if player gets this far, zombie gives up and idles again
-    [SerializeField] private LayerMask obstacleMask;        // set this to your Walls/Maze layer - blocks line of sight
-    [SerializeField] private float eyeHeight = 1.5f;        // raycast origin height, roughly zombie head height
+    [SerializeField] private float detectionRange = 8f;
+    [SerializeField] private float loseRange = 15f;
+    [SerializeField] private LayerMask obstacleMask;
+    [SerializeField] private float eyeHeight = 1.5f;
 
-    [Header("Chase Settings")]
-    [SerializeField] private float updateInterval = 0.2f;   // how often to recalc path (perf-friendly for 12 zombies)
+    [Header("Movement")]
+    [SerializeField] private float updateInterval = 0.2f;
+
+    [Header("Attack")]
+    [SerializeField] private float attackRange = 1.8f;
+    [SerializeField] private int attackDamage = 20;
+    [SerializeField] private float attackCooldown = 1.5f;
 
     private NavMeshAgent agent;
     private State currentState = State.Idle;
-    private float timer;
 
-    void Awake()
+    private float timer;
+    private float attackTimer;
+
+    private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
 
@@ -32,85 +46,152 @@ public class ZombieChaseAI : MonoBehaviour
 
         if (player == null)
         {
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
-                player = playerObj.transform;
+            GameObject playerObject =
+                GameObject.FindGameObjectWithTag("Player");
+
+            if (playerObject != null)
+                player = playerObject.transform;
         }
 
-        agent.isStopped = true; // start idle - don't move until the player is spotted
+        if (playerHealth == null && player != null)
+            playerHealth = player.GetComponent<PlayerHealth>();
+
+        agent.updatePosition = true;
+        agent.updateRotation = true;
+        agent.isStopped = true;
+
+        animator.SetFloat("Speed", 0f);
     }
 
-    void Update()
+    private void Update()
     {
-        if (player == null || agent == null) return;
+        if (player == null)
+            return;
 
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-        bool canSeePlayer = HasLineOfSight(distanceToPlayer);
+        float distance =
+            Vector3.Distance(transform.position, player.position);
+
+        bool canSeePlayer =
+            HasLineOfSight(distance);
 
         switch (currentState)
         {
             case State.Idle:
-                if (distanceToPlayer <= detectionRange && canSeePlayer)
-                {
-                    currentState = State.Chasing;
-                    agent.isStopped = false;
-                }
+                HandleIdle(distance, canSeePlayer);
                 break;
 
             case State.Chasing:
-                if (distanceToPlayer > loseRange || !canSeePlayer)
-                {
-                    currentState = State.Idle;
-                    agent.isStopped = true;
-                    agent.ResetPath();
-                }
-                else
-                {
-                    timer += Time.deltaTime;
-                    if (timer >= updateInterval)
-                    {
-                        timer = 0f;
-                        agent.SetDestination(player.position);
-                    }
-                }
+                HandleChasing(distance, canSeePlayer);
+                break;
+
+            case State.Attacking:
+                HandleAttacking(distance);
                 break;
         }
 
-        // Optional: drive a Speed float once you add an Idle/Walk blend tree in the Animator
-        // if (animator != null)
-        // {
-        //     float speedPercent = agent.velocity.magnitude / agent.speed;
-        //     animator.SetFloat("Speed", speedPercent);
-        // }
+        UpdateAnimation();
     }
 
-    // Returns true only if nothing on obstacleMask (walls) sits between zombie and player -
-    // this is what stops the zombie "seeing" the player through maze walls.
-    private bool HasLineOfSight(float distanceToPlayer)
+    private void HandleIdle(float distance, bool canSeePlayer)
     {
-        Vector3 origin = transform.position + Vector3.up * eyeHeight;
-        Vector3 target = player.position + Vector3.up * eyeHeight;
-        Vector3 direction = (target - origin).normalized;
+        agent.isStopped = true;
 
-        if (Physics.Raycast(origin, direction, out RaycastHit hit, distanceToPlayer, obstacleMask))
+        if (distance <= detectionRange && canSeePlayer)
         {
-            // Something on the wall layer is blocking the view
+            currentState = State.Chasing;
+            agent.isStopped = false;
+        }
+    }
+
+    private void HandleChasing(float distance, bool canSeePlayer)
+    {
+        if (distance > loseRange || !canSeePlayer)
+        {
+            currentState = State.Idle;
+            agent.isStopped = true;
+            agent.ResetPath();
+            return;
+        }
+
+        timer += Time.deltaTime;
+
+        if (timer >= updateInterval)
+        {
+            timer = 0f;
+            agent.SetDestination(player.position);
+        }
+
+        if (distance <= attackRange &&
+            attackTimer <= 0f)
+        {
+            currentState = State.Attacking;
+            agent.isStopped = true;
+
+            animator.SetTrigger("Attack");
+
+            if (playerHealth != null)
+                playerHealth.TakeDamage(attackDamage);
+
+            attackTimer = attackCooldown;
+        }
+
+        attackTimer -= Time.deltaTime;
+    }
+
+    private void HandleAttacking(float distance)
+    {
+        agent.isStopped = true;
+
+        attackTimer -= Time.deltaTime;
+
+        if (attackTimer <= 0f)
+        {
+            if (distance <= attackRange)
+            {
+                animator.SetTrigger("Attack");
+                attackTimer = attackCooldown;
+            }
+            else
+            {
+                currentState = State.Chasing;
+                agent.isStopped = false;
+            }
+        }
+    }
+
+    private void UpdateAnimation()
+    {
+        if (animator == null)
+            return;
+
+        // Get the zombie's actual movement speed
+        float movementSpeed = agent.velocity.magnitude;
+
+        // Send the speed to the Animator
+        animator.SetFloat("Speed", movementSpeed);
+    }
+
+    private bool HasLineOfSight(float distance)
+    {
+        Vector3 origin =
+            transform.position + Vector3.up * eyeHeight;
+
+        Vector3 target =
+            player.position + Vector3.up * eyeHeight;
+
+        Vector3 direction =
+            (target - origin).normalized;
+
+        if (Physics.Raycast(
+            origin,
+            direction,
+            out RaycastHit hit,
+            distance,
+            obstacleMask))
+        {
             return false;
         }
+
         return true;
-    }
-
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRange);
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, loseRange);
-
-        if (player != null)
-        {
-            Gizmos.color = HasLineOfSight(Vector3.Distance(transform.position, player.position)) ? Color.green : Color.gray;
-            Gizmos.DrawLine(transform.position + Vector3.up * eyeHeight, player.position + Vector3.up * eyeHeight);
-        }
     }
 }

@@ -27,7 +27,7 @@ public class ZombieChaseAI : MonoBehaviour
     [SerializeField] private float updateInterval = 0.2f;
 
     [Header("Attack")]
-    [SerializeField] private float attackRange = 1.8f; // keep >= NavMeshAgent Stopping Distance
+    [SerializeField] private float attackRange = 0.5f;
     [SerializeField] private int attackDamage = 20;
     [SerializeField] private float attackCooldown = 1.5f;
 
@@ -46,7 +46,9 @@ public class ZombieChaseAI : MonoBehaviour
 
         if (player == null)
         {
-            GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+            GameObject playerObject =
+                GameObject.FindGameObjectWithTag("Player");
+
             if (playerObject != null)
                 player = playerObject.transform;
         }
@@ -54,15 +56,11 @@ public class ZombieChaseAI : MonoBehaviour
         if (playerHealth == null && player != null)
             playerHealth = player.GetComponent<PlayerHealth>();
 
-        // IMPORTANT: Apply Root Motion must be CHECKED on the Animator component.
-        // The Walk animation itself moves the character; the NavMeshAgent only
-        // handles pathfinding direction, not the actual translation. This is
-        // what keeps the legs' movement and the body's movement in sync.
-        agent.updatePosition = false;
+        agent.updatePosition = true;
         agent.updateRotation = true;
         agent.isStopped = true;
 
-        animator.SetBool("IsChasing", false);
+        animator.SetFloat("Speed", 0f);
     }
 
     private void Update()
@@ -70,8 +68,11 @@ public class ZombieChaseAI : MonoBehaviour
         if (player == null)
             return;
 
-        float distance = Vector3.Distance(transform.position, player.position);
-        bool canSeePlayer = HasLineOfSight(distance);
+        float distance =
+            Vector3.Distance(transform.position, player.position);
+
+        bool canSeePlayer =
+            HasLineOfSight(distance);
 
         switch (currentState)
         {
@@ -87,30 +88,13 @@ public class ZombieChaseAI : MonoBehaviour
                 HandleAttacking(distance);
                 break;
         }
-    }
 
-    // Called automatically by Unity whenever the Animator applies root motion.
-    // We take exactly how far the WALK animation moved this frame and apply
-    // that same amount to both the transform and the NavMeshAgent, so the legs
-    // and the body always move the identical distance - no more sliding.
-    private void OnAnimatorMove()
-    {
-        if (currentState != State.Chasing)
-            return;
-
-        AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
-        if (!stateInfo.IsName("Zombie Walk")) // match your exact state name in the Animator graph
-            return;
-
-        Vector3 newPosition = transform.position + animator.deltaPosition;
-        agent.nextPosition = newPosition;
-        transform.position = agent.nextPosition;
+        UpdateAnimation();
     }
 
     private void HandleIdle(float distance, bool canSeePlayer)
     {
         agent.isStopped = true;
-        animator.SetBool("IsChasing", false);
 
         if (distance <= detectionRange && canSeePlayer)
         {
@@ -120,80 +104,93 @@ public class ZombieChaseAI : MonoBehaviour
     }
 
     private void HandleChasing(float distance, bool canSeePlayer)
+{
+    if (distance > loseRange || !canSeePlayer)
     {
-        if (distance > loseRange || !canSeePlayer)
-        {
-            currentState = State.Idle;
-            agent.isStopped = true;
-            agent.ResetPath();
-            return;
-        }
-
-        if (distance <= attackRange)
-        {
-            currentState = State.Attacking;
-            agent.isStopped = true;
-            agent.ResetPath();
-            animator.SetBool("IsChasing", false);
-            attackTimer = 0f;
-            return;
-        }
-
-        animator.SetBool("IsChasing", true);
-
-        timer += Time.deltaTime;
-        if (timer >= updateInterval)
-        {
-            timer = 0f;
-            agent.isStopped = false;
-            agent.SetDestination(player.position);
-        }
+        currentState = State.Idle;
+        agent.isStopped = true;
+        agent.ResetPath();
+        return;
     }
 
-    private void HandleAttacking(float distance)
+    // Only attack when genuinely close
+    if (distance <= attackRange)
     {
+        currentState = State.Attacking;
         agent.isStopped = true;
-        animator.SetBool("IsChasing", false);
+        agent.ResetPath();
+        attackTimer = 0f;
+        return;
+    }
 
-        if (distance > attackRange)
-        {
-            currentState = State.Chasing;
-            agent.isStopped = false;
+    // Keep walking toward the player
+    timer += Time.deltaTime;
+
+    if (timer >= updateInterval)
+    {
+        timer = 0f;
+        agent.isStopped = false;
+        agent.SetDestination(player.position);
+    }
+}
+    private void HandleAttacking(float distance)
+{
+    agent.isStopped = true;
+
+    // Player moved away, chase again
+    if (distance > attackRange)
+    {
+        currentState = State.Chasing;
+        agent.isStopped = false;
+        return;
+    }
+
+    // Count down to the next attack
+    attackTimer -= Time.deltaTime;
+
+    if (attackTimer <= 0f)
+    {
+        animator.SetTrigger("Attack");
+
+        if (playerHealth != null)
+            playerHealth.TakeDamage(attackDamage);
+
+        attackTimer = attackCooldown;
+    }
+}
+    private void UpdateAnimation()
+    {
+        if (animator == null)
             return;
-        }
 
-        attackTimer -= Time.deltaTime;
-        if (attackTimer <= 0f)
-        {
-            animator.SetTrigger("Attack");
+        // Get the zombie's actual movement speed
+        float movementSpeed = agent.velocity.magnitude;
 
-            if (playerHealth != null)
-                playerHealth.TakeDamage(attackDamage);
-
-            attackTimer = attackCooldown;
-        }
+        // Send the speed to the Animator
+        animator.SetFloat("Speed", movementSpeed);
     }
 
     private bool HasLineOfSight(float distance)
     {
-        Vector3 origin = transform.position + Vector3.up * eyeHeight;
-        Vector3 target = player.position + Vector3.up * eyeHeight;
-        Vector3 direction = (target - origin).normalized;
+        Vector3 origin =
+            transform.position + Vector3.up * eyeHeight;
 
-        if (Physics.Raycast(origin, direction, out RaycastHit hit, distance, obstacleMask))
+        Vector3 target =
+            player.position + Vector3.up * eyeHeight;
+
+        Vector3 direction =
+            (target - origin).normalized;
+
+        if (Physics.Raycast(
+            origin,
+            direction,
+            out RaycastHit hit,
+            distance,
+            obstacleMask))
         {
             return false;
         }
-        return true;
-    }
 
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRange);
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, loseRange);
-        Gizmos.color = Color.magenta;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
+        return true;
     }
 }

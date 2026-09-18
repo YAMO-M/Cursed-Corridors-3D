@@ -194,7 +194,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: ad6ad8261451a6046ad184a267d942f9, type: 3}
       propertyPath: m_Name
-      value: Zombie_model
+      value: Zombie_Model
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: ad6ad8261451a6046ad184a267d942f9, type: 3}
       propertyPath: m_Layer
@@ -290,7 +290,7 @@ PrefabInstance:
       objectReference: {fileID: 9100000, guid: 1602aa4bbfc1f5e469f5adc1c0d6b9d7, type: 2}
     - target: {fileID: 5866666021909216657, guid: ad6ad8261451a6046ad184a267d942f9, type: 3}
       propertyPath: m_ApplyRootMotion
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6240733294840144465, guid: ad6ad8261451a6046ad184a267d942f9, type: 3}
       propertyPath: m_Layer
@@ -411,13 +411,13 @@ MonoBehaviour:
   player: {fileID: 0}
   animator: {fileID: 0}
   playerHealth: {fileID: 0}
-  detectionRange: 8
+  detectionRange: 5
   loseRange: 15
   obstacleMask:
     serializedVersion: 2
     m_Bits: 128
   eyeHeight: 1.5
   updateInterval: 0.2
-  attackRange: 0.5
+  attackRange: 1.5
   attackDamage: 20
   attackCooldown: 2

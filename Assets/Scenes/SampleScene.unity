@@ -10903,6 +10903,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4da01da52366b864b9639e6319957de1, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1054745257}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4da01da52366b864b9639e6319957de1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1054745258}
     - targetCorrespondingSourceObject: {fileID: -7074408773778849768, guid: 4da01da52366b864b9639e6319957de1, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1054745251}
@@ -11036,6 +11039,21 @@ MonoBehaviour:
   acceleration: 10
   deceleration: 8
   cameraTransform: {fileID: 330585546}
+--- !u!114 &1054745258
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1054745247}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f3a296a2d5ab54429012d33a4837660, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
+  maxHealth: 100
+  currentHealth: 0
+  healthSlider: {fileID: 1153569641}
 --- !u!1 &1057542846
 GameObject:
   m_ObjectHideFlags: 0
@@ -21116,7 +21134,6 @@ GameObject:
   - component: {fileID: 1843298867}
   - component: {fileID: 1843298866}
   - component: {fileID: 1843298865}
-  - component: {fileID: 1843298869}
   m_Layer: 5
   m_Name: HUD_Canvas
   m_TagString: Untagged
@@ -21208,21 +21225,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &1843298869
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1843298864}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6f3a296a2d5ab54429012d33a4837660, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
-  maxHealth: 100
-  currentHealth: 0
-  healthSlider: {fileID: 1153569641}
 --- !u!1 &1844995671
 GameObject:
   m_ObjectHideFlags: 0

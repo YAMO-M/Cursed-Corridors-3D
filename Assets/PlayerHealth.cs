@@ -57,5 +57,6 @@ public class PlayerHealth : MonoBehaviour
     void Die()
     {
         Debug.Log("💀 GAME OVER! The zombie got you!");
+        GameManager.Instance.Lose("Caught by the enemy");
     }
 }

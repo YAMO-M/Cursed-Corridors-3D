@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: 961e5fc05ec90674780bc7a62e6c42bd
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - promptPanel: {fileID: 2128066644324178269, guid: 2cc974844913584409242573b134cb70, type: 3}
+  - promptText: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

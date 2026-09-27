@@ -1,21 +1,12 @@
 using UnityEngine;
 
-public class Collectible : MonoBehaviour
+public class Collectible : MonoBehaviour, IInteractable
 {
-    [SerializeField] private GameObject minimapPanel;
+    public string GetPrompt() => "Press M to collect";
 
-    private void OnTriggerEnter(Collider other)
+    public void Interact(GameObject interactor)
     {
-        if (other.CompareTag("Player"))
-        {
-            GameManager.Instance.CollectItem();
-
-            if (minimapPanel != null)
-            {
-                minimapPanel.SetActive(true);
-            }
-
-            gameObject.SetActive(false);
-        }
+        GameManager.Instance.CollectItem();
+        gameObject.SetActive(false);
     }
 }

@@ -1,4 +1,3 @@
-
 using UnityEngine;
 
 public class MapPickup : MonoBehaviour
@@ -38,6 +37,11 @@ public class MapPickup : MonoBehaviour
         // Tell the GameManager that a map was collected.
         // MinimapController listens for this event.
         GameManager.Instance.CollectMap();
+
+        // Also counts toward the win-condition collectible total
+        // (previously handled separately by Collectible.cs, which
+        // conflicted with the minimap's show/hide timer).
+        GameManager.Instance.CollectItem();
 
         // Play pickup sound.
         if (pickupSound != null)

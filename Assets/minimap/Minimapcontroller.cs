@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,15 +8,13 @@ public class MinimapController : MonoBehaviour
     [SerializeField] private GameObject minimapPanel;
 
     [Header("Fog Reveal")]
-    [Tooltip("Fog pieces are revealed in the same order that maps are collected.")]
     [SerializeField] private List<GameObject> fogPieces = new List<GameObject>();
 
     [Header("Settings")]
-    [SerializeField] private float displayDuration = 30f;
+    [SerializeField] private float displayDuration = 15f;
 
-    private float timer;
-    private bool isShowing;
-    private int mapPiecesCollected;
+    private int mapPiecesCollected = 0;
+    private Coroutine hideCoroutine;
 
     public bool HasAnyMap => mapPiecesCollected > 0;
 
@@ -28,33 +27,28 @@ public class MinimapController : MonoBehaviour
     private void Awake()
     {
         mapPiecesCollected = 0;
-        isShowing = false;
-        timer = 0f;
 
-        // Minimap starts hidden.
+        // Hide minimap when the game starts.
         if (minimapPanel != null)
+        {
             minimapPanel.SetActive(false);
+        }
 
-        // All fog starts covering the minimap.
+        // Keep all fog pieces covering the map.
         foreach (GameObject fog in fogPieces)
         {
             if (fog != null)
+            {
                 fog.SetActive(true);
+            }
         }
     }
 
     private void Start()
     {
-        // Subscribe after all Awake methods have run.
         if (GameManager.Instance != null)
         {
             GameManager.Instance.OnMapCollected += OnMapCollected;
-        }
-        else
-        {
-            Debug.LogError(
-                "MinimapController: GameManager.Instance could not be found."
-            );
         }
     }
 
@@ -66,31 +60,38 @@ public class MinimapController : MonoBehaviour
         }
     }
 
-    private void Update()
-    {
-        if (!isShowing)
-            return;
-
-        timer -= Time.deltaTime;
-
-        if (timer <= 0f)
-        {
-            HideMinimap();
-        }
-    }
-
     private void OnMapCollected()
     {
+        // If the minimap is already showing,
+        // hide the old version first.
+        if (minimapPanel != null)
+        {
+            minimapPanel.SetActive(false);
+        }
+
+        // Cancel the previous 15-second timer.
+        if (hideCoroutine != null)
+        {
+            StopCoroutine(hideCoroutine);
+        }
+
+        // Reveal the next section.
         RevealNextMapSection();
-        ShowMinimap();
+
+        // Show the updated map.
+        if (minimapPanel != null)
+        {
+            minimapPanel.SetActive(true);
+        }
+
+        // Start a new 15-second timer.
+        hideCoroutine = StartCoroutine(HideAfter15Seconds());
     }
 
     private void RevealNextMapSection()
     {
-        // Prevent revealing more fog than actually exists.
         if (mapPiecesCollected >= fogPieces.Count)
         {
-            Debug.Log("All map sections have already been revealed.");
             return;
         }
 
@@ -102,35 +103,17 @@ public class MinimapController : MonoBehaviour
         }
 
         mapPiecesCollected++;
-
-        Debug.Log(
-            $"Map section revealed: " +
-            $"{mapPiecesCollected}/{fogPieces.Count}"
-        );
     }
 
-    private void ShowMinimap()
+    private IEnumerator HideAfter15Seconds()
     {
-        isShowing = true;
-
-        // Every newly collected map gives the player another
-        // 30 seconds of minimap visibility.
-        timer = displayDuration;
-
-        if (minimapPanel != null)
-        {
-            minimapPanel.SetActive(true);
-        }
-    }
-
-    private void HideMinimap()
-    {
-        isShowing = false;
-        timer = 0f;
+        yield return new WaitForSeconds(15f);
 
         if (minimapPanel != null)
         {
             minimapPanel.SetActive(false);
         }
+
+        hideCoroutine = null;
     }
 }

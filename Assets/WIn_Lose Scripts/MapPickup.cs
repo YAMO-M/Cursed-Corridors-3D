@@ -1,15 +1,53 @@
+
 using UnityEngine;
 
-public class MapPickup : MonoBehaviour, IInteractable
+public class MapPickup : MonoBehaviour
 {
+    [Header("Audio")]
     [SerializeField] private AudioSource pickupSound;
 
-    public string GetPrompt() => "Press M to take the Maze Map";
+    private bool collected = false;
 
-    public void Interact(GameObject interactor)
+    private void OnTriggerEnter(Collider other)
     {
+        // Only collect when the Player walks into the map.
+        if (!other.CompareTag("Player"))
+            return;
+
+        CollectMap();
+    }
+
+    private void CollectMap()
+    {
+        // Prevent collecting the same map more than once.
+        if (collected)
+            return;
+
+        // Make sure the GameManager exists.
+        if (GameManager.Instance == null)
+        {
+            Debug.LogError(
+                "MapPickup: GameManager.Instance could not be found."
+            );
+
+            return;
+        }
+
+        collected = true;
+
+        // Tell the GameManager that a map was collected.
+        // MinimapController listens for this event.
         GameManager.Instance.CollectMap();
-        if (pickupSound != null) pickupSound.Play();
+
+        // Play pickup sound.
+        if (pickupSound != null)
+        {
+            pickupSound.Play();
+        }
+
+        Debug.Log("Maze map collected!");
+
+        // Remove the map collectible.
         gameObject.SetActive(false);
     }
 }

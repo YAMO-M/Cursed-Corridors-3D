@@ -1,5 +1,5 @@
 using UnityEngine;
-
+[RequireComponent(typeof(DissolveOnPickup))]
 public class HealthKit : MonoBehaviour
 {
     [Header("Health Kit Settings")]
@@ -7,10 +7,12 @@ public class HealthKit : MonoBehaviour
 
     private bool playerInRange = false;
     private PlayerHealth playerHealth;
+    private DissolveOnPickup dissolveOnPickup;
 
     void Start()
     {
         playerHealth = FindAnyObjectByType<PlayerHealth>();
+        dissolveOnPickup = GetComponent<DissolveOnPickup>();
 
         if (playerHealth == null)
         {
@@ -53,6 +55,6 @@ public class HealthKit : MonoBehaviour
             Debug.Log("❤️ Health Kit collected! +" + healAmount + " HP");
         }
 
-        Destroy(gameObject);
+        dissolveOnPickup.TriggerDissolve();
     }
 }

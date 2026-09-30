@@ -16,6 +16,7 @@ public class ZombieChaseAI : MonoBehaviour
     [SerializeField] private Transform player;
     [SerializeField] private Animator animator;
     [SerializeField] private PlayerHealth playerHealth;
+    [SerializeField] private Renderer detectionConeRenderer;
 
     [Header("Detection")]
     [SerializeField] private float detectionRange = 8f;
@@ -36,6 +37,7 @@ public class ZombieChaseAI : MonoBehaviour
 
     private float timer;
     private float attackTimer;
+    private static readonly int AlertColorID = Shader.PropertyToID("_AlertColor");
 
     private void Awake()
     {
@@ -91,6 +93,19 @@ public class ZombieChaseAI : MonoBehaviour
 
         UpdateAnimation();
     }
+    private void SetState(State newState)
+    {
+        if (currentState == newState)
+            return;
+        currentState = newState;
+        Debug.Log("Zombie State:" + newState);
+
+        if (detectionConeRenderer != null)
+        {
+            Color alertColor = currentState == State.Idle ? Color.yellow : Color.red; // changes the color of the detection cone according to its state
+            detectionConeRenderer.material.SetColor(AlertColorID, alertColor);
+        }
+    }
 
     private void HandleIdle(float distance, bool canSeePlayer)
     {
@@ -98,66 +113,66 @@ public class ZombieChaseAI : MonoBehaviour
 
         if (distance <= detectionRange && canSeePlayer)
         {
-            currentState = State.Chasing;
+            SetState(State.Chasing);
             agent.isStopped = false;
         }
     }
 
     private void HandleChasing(float distance, bool canSeePlayer)
-{
-    if (distance > loseRange || !canSeePlayer)
     {
-        currentState = State.Idle;
-        agent.isStopped = true;
-        agent.ResetPath();
-        return;
-    }
+        if (distance > loseRange || !canSeePlayer)
+        {
+            SetState(State.Idle);
+            agent.isStopped = true;
+            agent.ResetPath();
+            return;
+        }
 
-    // Only attack when genuinely close
-    if (distance <= attackRange)
-    {
-        currentState = State.Attacking;
-        agent.isStopped = true;
-        agent.ResetPath();
-        attackTimer = 0f;
-        return;
-    }
+        // Only attack when genuinely close
+        if (distance <= attackRange)
+        {
+            SetState(State.Attacking);
+            agent.isStopped = true;
+            agent.ResetPath();
+            attackTimer = 0f;
+            return;
+        }
 
-    // Keep walking toward the player
-    timer += Time.deltaTime;
+        // Keep walking toward the player
+        timer += Time.deltaTime;
 
-    if (timer >= updateInterval)
-    {
-        timer = 0f;
-        agent.isStopped = false;
-        agent.SetDestination(player.position);
+        if (timer >= updateInterval)
+        {
+            timer = 0f;
+            agent.isStopped = false;
+            agent.SetDestination(player.position);
+        }
     }
-}
     private void HandleAttacking(float distance)
-{
-    agent.isStopped = true;
-
-    // Player moved away, chase again
-    if (distance > attackRange)
     {
-        currentState = State.Chasing;
-        agent.isStopped = false;
-        return;
+        agent.isStopped = true;
+
+        // Player moved away, chase again
+        if (distance > attackRange)
+        {
+            SetState(State.Chasing);
+            agent.isStopped = false;
+            return;
+        }
+
+        // Count down to the next attack
+        attackTimer -= Time.deltaTime;
+
+        if (attackTimer <= 0f)
+        {
+            animator.SetTrigger("Attack");
+
+            if (playerHealth != null)
+                playerHealth.TakeDamage(attackDamage);
+
+            attackTimer = attackCooldown;
+        }
     }
-
-    // Count down to the next attack
-    attackTimer -= Time.deltaTime;
-
-    if (attackTimer <= 0f)
-    {
-        animator.SetTrigger("Attack");
-
-        if (playerHealth != null)
-            playerHealth.TakeDamage(attackDamage);
-
-        attackTimer = attackCooldown;
-    }
-}
     private void UpdateAnimation()
     {
         if (animator == null)

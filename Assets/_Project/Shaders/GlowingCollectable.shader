@@ -7,6 +7,8 @@ Shader "MazeEscape/GlowingCollectible"
         _EmissionColor    ("Emission Colour",   Color)          = (1, 0.75, 0.35, 1)
         _EmissionStrength ("Emission Strength", Range(0, 8))     = 1.5
         _FresnelPower     ("Fresnel Power",     Range(0.5, 8))   = 4.0
+        _SpecColor        ("Specular Color",    Color)           = (1,1,1,1)
+        _Shininess        ("Shininess",         Range(1, 128))   = 32
         _BobHeight        ("Bob Height",        Range(0, 1))     = 0.06
         _BobSpeed         ("Bob Speed",         Range(0, 10))    = 1.8
     }
@@ -24,7 +26,7 @@ Shader "MazeEscape/GlowingCollectible"
             Name "ForwardLit"
             Tags { "LightMode" = "UniversalForward" }
 
-            Cull Off   // the map is thin, so render both sides
+            Cull Off   
 
             HLSLPROGRAM
             #pragma vertex   vert
@@ -57,6 +59,8 @@ Shader "MazeEscape/GlowingCollectible"
                 float4 _EmissionColor;
                 float  _EmissionStrength;
                 float  _FresnelPower;
+                float4 _SpecColor;
+                float _Shininess;
                 float  _BobHeight;
                 float  _BobSpeed;
             CBUFFER_END
@@ -100,7 +104,12 @@ Shader "MazeEscape/GlowingCollectible"
                 float  fresnel  = pow(1.0 - saturate(dot(N, V)), _FresnelPower);
                 float3 emission = _EmissionColor.rgb * _EmissionStrength * (0.15 + fresnel);
 
-                return half4(diffuse + ambient + emission, 1);
+                // TECHNIQUE 4: Specular highlight (Blinn-Phong)
+                float3 H        = normalize(L + V);
+                float  NdotH    = saturate(dot(N, H));
+                float  specTerm = pow(NdotH, _Shininess) * step(0.0001, NdotL);
+                float3 specular = _SpecColor.rgb * mainLight.color * specTerm;
+                return half4(diffuse + ambient + emission + specular, 1);
             }
             ENDHLSL
         }

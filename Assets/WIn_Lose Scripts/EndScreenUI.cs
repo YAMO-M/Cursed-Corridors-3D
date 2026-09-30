@@ -8,6 +8,7 @@ public class EndScreenUI : MonoBehaviour
     [SerializeField] private TMP_Text winTitleText;
     [SerializeField] private GameObject losePanel;
     [SerializeField] private TMP_Text loseTitleText;
+    [SerializeField] private TMP_Text loseDetailText;
 
     void Start()
     {
@@ -32,8 +33,15 @@ public class EndScreenUI : MonoBehaviour
 
     private void HandleLoss(string reason)
     {
-        losePanel.SetActive(true);
-        loseTitleText.text = reason; // e.g. "Caught by the enemy"
+            losePanel.SetActive(true);
+
+        if (reason == "Time ran out")
+            loseTitleText.text = "TIME'S UP!";
+        else
+            loseTitleText.text = "CAUGHT!";
+
+        loseDetailText.text = reason;
+
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }

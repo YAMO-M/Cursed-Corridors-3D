@@ -9,21 +9,38 @@ public class GameManager : MonoBehaviour
 
     [Header("Rules")]
     [SerializeField] private int totalCollectibles = 3;
+    [SerializeField] private float timeLimit = 300f; // 5 minutes
 
     public GameState State { get; private set; } = GameState.Playing;
     public bool HasMap { get; private set; }
     public int CollectiblesFound { get; private set; }
+    public float TimeRemaining { get; private set; }
 
-    // Other roles subscribe to these instead of polling every frame.
-    public event Action OnMapCollected;              // Role 2 reveals the minimap route on this
+    public event Action OnMapCollected;
     public event Action<int, int> OnCollectibleCountChanged;
-    public event Action<string> OnGameWon;            // passes the ending name
-    public event Action<string> OnGameLost;           // passes the loss reason
+    public event Action<float> OnTimeChanged;
+    public event Action<string> OnGameWon;
+    public event Action<string> OnGameLost;
 
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+        TimeRemaining = timeLimit;
+    }
+
+    void Update()
+    {
+        if (State != GameState.Playing) return;
+
+        TimeRemaining -= Time.deltaTime;
+        OnTimeChanged?.Invoke(TimeRemaining);
+
+        if (TimeRemaining <= 0f)
+        {
+            TimeRemaining = 0f;
+            Lose("Time ran out");
+        }
     }
 
     public void CollectMap()
@@ -40,11 +57,10 @@ public class GameManager : MonoBehaviour
         OnCollectibleCountChanged?.Invoke(CollectiblesFound, totalCollectibles);
     }
 
-    // Called by the exit door trigger.
     public void TryExit()
     {
         if (State != GameState.Playing) return;
-        if (!HasMap) return; // door stays locked; the door script shows a prompt
+        if (!HasMap) return;
 
         if (CollectiblesFound >= totalCollectibles)
             Win("Perfect Escape");
@@ -60,7 +76,6 @@ public class GameManager : MonoBehaviour
         OnGameWon?.Invoke(endingName);
     }
 
-    // Role 2's enemy calls this with "Caught by the enemy"
     public void Lose(string reason)
     {
         if (State != GameState.Playing) return;

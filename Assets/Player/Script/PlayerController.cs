@@ -11,7 +11,7 @@ public class PlayerController : MonoBehaviour
     public float deceleration = 8f;
 
     [Header("Camera")]
-    public Transform cameraTransform;  // Drag your Main Camera here
+    public Transform cameraTransform;  
 
     private Rigidbody rb;
     private Animator animator;
@@ -39,7 +39,7 @@ public class PlayerController : MonoBehaviour
         // 2. CALCULATE MOVEMENT RELATIVE TO CAMERA
         if (inputDirection.magnitude >= 0.1f)
         {
-            // Get the camera's forward and right directions (ignore pitch)
+            // Get the camera's forward and right directions 
             Vector3 forward = cameraTransform.forward;
             forward.y = 0;
             forward.Normalize();
@@ -57,7 +57,7 @@ public class PlayerController : MonoBehaviour
             transform.rotation = Quaternion.Euler(0, targetAngle, 0);
 
             // Check if sprinting
-            bool isSprinting = Input.GetKey(KeyCode.LeftShift);
+            bool isSprinting = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
             float targetSpeed = isSprinting ? sprintSpeed : walkSpeed;
 
             // Accelerate
@@ -71,7 +71,7 @@ public class PlayerController : MonoBehaviour
             rb.linearVelocity = Vector3.zero;
         }
 
-        // 3. ANIMATOR
+        // 3. ANIMATOR, Change the animations
         if (animator != null)
         {
             float speedPercent = currentSpeed / walkSpeed;

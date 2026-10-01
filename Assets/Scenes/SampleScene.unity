@@ -4216,7 +4216,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1ba09a789e34c2f4e90d061668720f42, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.00000032993688
+      value: 0.02
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1ba09a789e34c2f4e90d061668720f42, type: 3}
       propertyPath: m_LocalPosition.z
@@ -50844,7 +50844,7 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 1
+  m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 112

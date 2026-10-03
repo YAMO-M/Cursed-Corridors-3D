@@ -9,7 +9,8 @@ public class ZombieChaseAI : MonoBehaviour
     {
         Idle,
         Chasing,
-        Attacking
+        Attacking,
+        Returning
     }
 
     [Header("References")]
@@ -21,6 +22,7 @@ public class ZombieChaseAI : MonoBehaviour
     [Header("Detection")]
     [SerializeField] private float detectionRange = 8f;
     [SerializeField] private float loseRange = 15f;
+    [SerializeField] private float closeRange = 1.5f; // arm's length - always triggers chase, ignores line of sight
     [SerializeField] private LayerMask obstacleMask;
     [SerializeField] private float eyeHeight = 1.5f;
 
@@ -28,15 +30,20 @@ public class ZombieChaseAI : MonoBehaviour
     [SerializeField] private float updateInterval = 0.2f;
 
     [Header("Attack")]
-    [SerializeField] private float attackRange = 0.5f;
+    [SerializeField] private float attackRange = 1.5f; // keep >= NavMeshAgent Stopping Distance or the zombie will never reach this range
     [SerializeField] private int attackDamage = 20;
     [SerializeField] private float attackCooldown = 1.5f;
+
+    [Header("Return To Spawn")]
+    [SerializeField] private float arrivalThreshold = 0.3f;
 
     private NavMeshAgent agent;
     private State currentState = State.Idle;
 
     private float timer;
     private float attackTimer;
+    private Vector3 spawnPosition;
+    private Quaternion spawnRotation;
     private static readonly int AlertColorID = Shader.PropertyToID("_AlertColor");
 
     private void Awake()
@@ -57,6 +64,11 @@ public class ZombieChaseAI : MonoBehaviour
 
         if (playerHealth == null && player != null)
             playerHealth = player.GetComponent<PlayerHealth>();
+
+        // Remember where this zombie started so it can walk back here
+        // once it loses the player.
+        spawnPosition = transform.position;
+        spawnRotation = transform.rotation;
 
         agent.updatePosition = true;
         agent.updateRotation = true;
@@ -89,10 +101,15 @@ public class ZombieChaseAI : MonoBehaviour
             case State.Attacking:
                 HandleAttacking(distance);
                 break;
+
+            case State.Returning:
+                HandleReturning(distance, canSeePlayer);
+                break;
         }
 
         UpdateAnimation();
     }
+
     private void SetState(State newState)
     {
         if (currentState == newState)
@@ -102,7 +119,10 @@ public class ZombieChaseAI : MonoBehaviour
 
         if (detectionConeRenderer != null)
         {
-            Color alertColor = currentState == State.Idle ? Color.yellow : Color.red; // changes the color of the detection cone according to its state
+            // Idle and Returning both read as "not actively hunting" -> amber.
+            // Chasing and Attacking read as alerted -> red.
+            bool alerted = currentState == State.Chasing || currentState == State.Attacking;
+            Color alertColor = alerted ? Color.red : Color.yellow;
             detectionConeRenderer.material.SetColor(AlertColorID, alertColor);
         }
     }
@@ -111,7 +131,10 @@ public class ZombieChaseAI : MonoBehaviour
     {
         agent.isStopped = true;
 
-        if (distance <= detectionRange && canSeePlayer)
+        bool closeEnoughRegardless = distance <= closeRange;
+        bool spottedAtRange = distance <= detectionRange && canSeePlayer;
+
+        if (closeEnoughRegardless || spottedAtRange)
         {
             SetState(State.Chasing);
             agent.isStopped = false;
@@ -122,9 +145,7 @@ public class ZombieChaseAI : MonoBehaviour
     {
         if (distance > loseRange || !canSeePlayer)
         {
-            SetState(State.Idle);
-            agent.isStopped = true;
-            agent.ResetPath();
+            StartReturning();
             return;
         }
 
@@ -148,6 +169,7 @@ public class ZombieChaseAI : MonoBehaviour
             agent.SetDestination(player.position);
         }
     }
+
     private void HandleAttacking(float distance)
     {
         agent.isStopped = true;
@@ -173,6 +195,37 @@ public class ZombieChaseAI : MonoBehaviour
             attackTimer = attackCooldown;
         }
     }
+
+    private void StartReturning()
+    {
+        SetState(State.Returning);
+        agent.isStopped = false;
+        agent.SetDestination(spawnPosition);
+    }
+
+    private void HandleReturning(float distance, bool canSeePlayer)
+    {
+        // Player came back into range on the way home - chase again.
+        bool closeEnoughRegardless = distance <= closeRange;
+        bool spottedAtRange = distance <= detectionRange && canSeePlayer;
+
+        if (closeEnoughRegardless || spottedAtRange)
+        {
+            SetState(State.Chasing);
+            return;
+        }
+
+        float distanceToSpawn = Vector3.Distance(transform.position, spawnPosition);
+
+        if (!agent.pathPending && distanceToSpawn <= arrivalThreshold)
+        {
+            SetState(State.Idle);
+            agent.isStopped = true;
+            agent.ResetPath();
+            transform.rotation = spawnRotation;
+        }
+    }
+
     private void UpdateAnimation()
     {
         if (animator == null)
@@ -207,5 +260,21 @@ public class ZombieChaseAI : MonoBehaviour
         }
 
         return true;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, detectionRange);
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, loseRange);
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
+        Gizmos.color = new Color(1f, 0.5f, 0f);
+        Gizmos.DrawWireSphere(transform.position, closeRange);
+
+        Gizmos.color = Color.cyan;
+        Vector3 spawnGizmoPos = Application.isPlaying ? spawnPosition : transform.position;
+        Gizmos.DrawWireSphere(spawnGizmoPos, 0.5f);
     }
 }

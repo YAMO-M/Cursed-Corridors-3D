@@ -7,6 +7,7 @@ public class HealthKit : MonoBehaviour
     public int healAmount = 20;
 
     private bool playerInRange = false;
+    private bool collected = false;
     private PlayerHealth playerHealth;
     private DissolveOnPickup dissolveOnPickup;
 
@@ -23,7 +24,7 @@ public class HealthKit : MonoBehaviour
 
     void Update()
     {
-        if (playerInRange && Input.GetKeyDown(KeyCode.M))
+        if (playerInRange && !collected && Input.GetKeyDown(KeyCode.M))
         {
             CollectHealthKit();
         }
@@ -31,10 +32,13 @@ public class HealthKit : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
+        if (collected) return;
+
         if (other.CompareTag("Player"))
         {
             playerInRange = true;
-            Debug.Log("💊 Press M to collect the Health Kit!");
+            if (PromptUI.Instance != null)
+                PromptUI.Instance.Show("Press M to collect the Health Kit");
         }
     }
 
@@ -43,16 +47,22 @@ public class HealthKit : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             playerInRange = false;
-            Debug.Log("❌ Left the Health Kit area");
+            if (!collected && PromptUI.Instance != null)
+                PromptUI.Instance.Hide();
         }
     }
 
     void CollectHealthKit()
     {
+        collected = true;
+        playerInRange = false;
+
+        if (PromptUI.Instance != null)
+            PromptUI.Instance.ShowTimed("Health Kit collected! +" + healAmount + " HP", 2f);
+
         if (playerHealth != null)
         {
             playerHealth.Heal(healAmount);
-            Debug.Log("❤️ Health Kit collected! +" + healAmount + " HP");
         }
 
         dissolveOnPickup.TriggerDissolve();

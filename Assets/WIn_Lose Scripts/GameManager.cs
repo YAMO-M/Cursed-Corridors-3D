@@ -60,7 +60,7 @@ public class GameManager : MonoBehaviour
     public void TryExit()
     {
         if (State != GameState.Playing) return;
-        if (!HasMap) return;
+
 
         if (CollectiblesFound >= totalCollectibles)
             Win("Perfect Escape");

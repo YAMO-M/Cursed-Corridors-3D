@@ -19,7 +19,7 @@ public class MinimapHideBulbLights : MonoBehaviour
     private void Start()
     {
         int layer = LayerMask.NameToLayer(bulbLayerName);
-        foreach (Light l in FindObjectsByType<Light>(FindObjectsSortMode.None))
+        foreach (Light l in FindObjectsByType<Light>())
         {
             if (l.gameObject.layer == layer)
                 bulbLights.Add(l);

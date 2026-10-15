@@ -53,8 +53,7 @@ public class MapPickup : MonoBehaviour
         playerInRange = false;
 
         // Show the map-only glow on the player
-        FindFirstObjectByType<PlayerMapLight>()?.Show();
-
+        FindAnyObjectByType<PlayerMapLight>()?.Show();
         GameManager.Instance.CollectMap();
         GameManager.Instance.CollectItem();
 

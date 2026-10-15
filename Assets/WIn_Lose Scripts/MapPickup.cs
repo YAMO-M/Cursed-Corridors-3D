@@ -6,52 +6,65 @@ public class MapPickup : MonoBehaviour
     [SerializeField] private AudioSource pickupSound;
 
     private bool collected = false;
+    private bool playerInRange = false;
+
+    private void Update()
+    {
+        if (playerInRange && !collected && Input.GetKeyDown(KeyCode.M))
+        {
+            CollectMap();
+        }
+    }
 
     private void OnTriggerEnter(Collider other)
     {
-        // Only collect when the Player walks into the map.
-        if (!other.CompareTag("Player"))
-            return;
+        if (collected) return;
 
-        CollectMap();
+        if (other.CompareTag("Player"))
+        {
+            playerInRange = true;
+            if (PromptUI.Instance != null)
+                PromptUI.Instance.Show("Press M to collect the Map");
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            playerInRange = false;
+            if (!collected && PromptUI.Instance != null)
+                PromptUI.Instance.Hide();
+        }
     }
 
     private void CollectMap()
     {
-        // Prevent collecting the same map more than once.
         if (collected)
             return;
 
-        // Make sure the GameManager exists.
         if (GameManager.Instance == null)
         {
-            Debug.LogError(
-                "MapPickup: GameManager.Instance could not be found."
-            );
-
+            Debug.LogError("MapPickup: GameManager.Instance could not be found.");
             return;
         }
 
         collected = true;
+        playerInRange = false;
 
-        // Tell the GameManager that a map was collected.
-        // MinimapController listens for this event.
         GameManager.Instance.CollectMap();
-
-        // Also counts toward the win-condition collectible total
-        // (previously handled separately by Collectible.cs, which
-        // conflicted with the minimap's show/hide timer).
         GameManager.Instance.CollectItem();
 
-        // Play pickup sound.
         if (pickupSound != null)
         {
             pickupSound.Play();
         }
 
+        if (PromptUI.Instance != null)
+            PromptUI.Instance.ShowTimed("Map collected! The minimap is now showing", 3f);
+
         Debug.Log("Maze map collected!");
 
-        // Remove the map collectible.
         gameObject.SetActive(false);
     }
 }
